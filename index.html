@@ -189,15 +189,16 @@
         var(--rosewood-2) 50%,
         var(--rosewood-1) 100%);
   }
-  /* nut */
+  /* nut — sits on the FAR RIGHT of the fretboard so frets ascend
+     right-to-left toward the strum side */
   .nut {
     position: absolute;
     top: 0; bottom: 0;
-    left: 0;
+    right: 0;
     width: 14px;
     background: linear-gradient(to right,
-      #f4f0e6 0%, #d8d2c0 60%, #888070 100%);
-    box-shadow: 2px 0 4px rgba(0,0,0,0.5);
+      #888070 0%, #d8d2c0 40%, #f4f0e6 100%);
+    box-shadow: -2px 0 4px rgba(0,0,0,0.5);
     z-index: 3;
   }
   /* frets are absolutely positioned vertical lines */
@@ -245,11 +246,10 @@
   }
   .string-line {
     width: 100%; height: 100%;
-    background: linear-gradient(to bottom,
-      rgba(0,0,0,0) 30%,
-      var(--string-color, #d4d4d4) 50%,
-      rgba(0,0,0,0) 70%);
-    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6));
+    background: var(--string-color, #d4d4d4);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.35),
+      0 1px 2px rgba(0,0,0,0.55);
   }
   .string.vibrating .string-line {
     animation: stringVibe 0.4s ease-out;
@@ -287,10 +287,10 @@
     from { transform: translate(-50%, -50%) scale(0.6); opacity: 0; }
     to   { transform: translate(-50%, -50%) scale(1); opacity: 1; }
   }
-  /* string name labels at the nut */
+  /* string name labels at the nut (right side) */
   .string-label {
     position: absolute;
-    left: -2px;
+    right: -2px;
     transform: translateY(-50%);
     width: 18px;
     text-align: center;
@@ -569,7 +569,7 @@
   // index 5 = bottom = high E (thinnest)
   const STRING_NAMES  = ['E', 'A', 'D', 'G', 'B', 'e'];
   const STRING_FREQS  = [82.41, 110.00, 146.83, 196.00, 246.94, 329.63];
-  const STRING_GAUGE  = [3.6, 3.1, 2.6, 2.1, 1.7, 1.3]; // visual thickness px
+  const STRING_GAUGE  = [4.6, 4.0, 3.4, 2.9, 2.5, 2.2]; // visual thickness px (min 2 so thin strings render)
   const STRING_COLORS = ['#a89368', '#b8a070', '#c4ac78', '#d8d8d8', '#e0e0e0', '#ececec'];
   const INLAY_FRETS = [3, 5, 7]; // 8-fret board, so single dots on 3,5,7
   const SEMITONE = Math.pow(2, 1/12);
@@ -777,13 +777,14 @@
       remaining -= step;
       xs.push(position);
     }
-    // normalize so the last fret sits near the right edge
-    // We want: fret 0 (nut) at left edge of usable area, fret 8 at right edge.
-    // Add some margin so the 8th fret isn't right at the edge.
-    const usableStart = 18; // px from left (after nut)
-    const usableEnd = width - 8;
+    // Player holds the tablet with strum on the LEFT and the fretboard on
+    // the RIGHT. The nut therefore belongs on the FAR RIGHT (closest to the
+    // fretting hand) and frets ascend right-to-left toward the strum.
+    const nutInset = 18;        // distance from RIGHT edge for the nut
+    const farInset = 8;         // distance from LEFT edge for fret 8
     const span = xs[NUM_FRETS] - xs[0];
-    return xs.map(x => usableStart + (x / span) * (usableEnd - usableStart));
+    // Result is in screen-x coordinates, but values DECREASE as fret index increases.
+    return xs.map(x => width - (nutInset + (x / span) * (width - nutInset - farInset)));
   }
 
   function buildFretboard() {
@@ -874,14 +875,16 @@
       const cellH = cellBot - cellTop;
 
       for (let f = 1; f <= NUM_FRETS; f++) {
-        const x1 = fretXsPx[f - 1];
-        const x2 = fretXsPx[f];
+        // fretXs decreases as fret index grows (nut on right), so the cell
+        // for fret f spans from fretXs[f] (left) to fretXs[f-1] (right).
+        const xLeft  = Math.min(fretXsPx[f], fretXsPx[f - 1]);
+        const xRight = Math.max(fretXsPx[f], fretXsPx[f - 1]);
         const cell = document.createElement('div');
         cell.className = 'fret-cell';
         cell.style.position = 'absolute';
-        cell.style.left = x1 + 'px';
+        cell.style.left = xLeft + 'px';
         cell.style.top = cellTop + 'px';
-        cell.style.width = (x2 - x1) + 'px';
+        cell.style.width = (xRight - xLeft) + 'px';
         cell.style.height = cellH + 'px';
         cell.dataset.string = s;
         cell.dataset.fret = f;
