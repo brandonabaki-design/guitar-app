@@ -26,7 +26,14 @@
     --text-dim: #8a7e68;
   }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  * {
+    box-sizing: border-box;
+    margin: 0; padding: 0;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
   html, body {
     width: 100%; height: 100%;
     background: var(--bg-0);
@@ -35,8 +42,16 @@
     overflow: hidden;
     overscroll-behavior: none;
     touch-action: none;
-    user-select: none;
-    -webkit-user-select: none;
+    /* prevent iOS Safari pull-to-refresh / overscroll glow */
+    position: fixed;
+    inset: 0;
+  }
+  /* When fullscreen is active, kill any leftover system chrome margins. */
+  :fullscreen #app, :-webkit-full-screen #app {
+    width: 100vw; height: 100vh;
+  }
+  body.fs-active {
+    background: #000;
   }
 
   #app {
@@ -88,6 +103,14 @@
     border-color: var(--accent);
     color: #1a1208;
   }
+  .btn.icon-btn {
+    padding: 0;
+    width: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .btn.icon-btn svg { display: block; }
   .chord-bar {
     display: flex; gap: 6px;
     padding: 4px;
@@ -113,9 +136,13 @@
   }
 
   /* ===== MAIN STAGE ===== */
+  /* row-reverse: the user holds the tablet like a guitar (screen facing
+     away), so the strum side belongs on the screen's LEFT and the
+     fretboard on the screen's RIGHT. */
   .stage {
     flex: 1;
     display: flex;
+    flex-direction: row-reverse;
     padding: 14px;
     gap: 12px;
     min-height: 0;
@@ -401,6 +428,35 @@
     font-family: inherit;
   }
 
+  /* ===== EDGE GUARDS =====
+     Thin transparent strips along the screen edges. While in fullscreen
+     they swallow touches that start at the very edge (the gestures iOS
+     interprets as "swipe up to dismiss" or "swipe down for control
+     center"). Outside of fullscreen they're invisible no-ops. */
+  .edge-guard {
+    position: fixed;
+    z-index: 50;
+    background: transparent;
+    pointer-events: none;
+    touch-action: none;
+  }
+  /* keep top guard slim so it doesn't sit on top of the header buttons */
+  .edge-guard.top    { top: 0;    left: 0; right: 0;  height: 4px; }
+  .edge-guard.bottom { bottom: 0; left: 0; right: 0;  height: 22px; }
+  .edge-guard.left   { top: 0;    bottom: 0; left: 0; width: 6px; }
+  .edge-guard.right  { top: 0;    bottom: 0; right: 0; width: 6px; }
+  body.fs-active .edge-guard { pointer-events: auto; }
+  /* subtle visual hint at the bottom indicator area when fullscreen is on */
+  body.fs-active .edge-guard.bottom::after {
+    content: "";
+    position: absolute;
+    bottom: 4px; left: 50%;
+    transform: translateX(-50%);
+    width: 80px; height: 3px;
+    background: rgba(255,179,71,0.18);
+    border-radius: 2px;
+  }
+
   /* ===== PORTRAIT WARNING ===== */
   .rotate-warning {
     display: none;
@@ -444,6 +500,14 @@
     </div>
     <div class="controls">
       <button class="btn" id="clearBtn">Clear</button>
+      <button class="btn icon-btn" id="fsBtn" aria-label="Toggle fullscreen" title="Toggle fullscreen">
+        <svg id="fsIconEnter" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>
+        </svg>
+        <svg id="fsIconExit" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+          <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/>
+        </svg>
+      </button>
       <button class="btn" id="helpBtn">?</button>
     </div>
   </header>
@@ -465,16 +529,24 @@
   </div>
 </div>
 
+<!-- Edge guards: absorb iOS edge-swipes when in fullscreen -->
+<div class="edge-guard top"></div>
+<div class="edge-guard bottom"></div>
+<div class="edge-guard left"></div>
+<div class="edge-guard right"></div>
+
 <div class="overlay" id="helpOverlay">
   <div class="panel">
     <h2>How to play</h2>
-    <p><strong>Left hand (fretboard):</strong> Press anywhere on a string to fret that note. Pressing closer to the body raises the pitch. Multi-touch — you can hold several frets at once.</p>
-    <p><strong>Right hand (strum bar):</strong> Tap a string to pluck just that one. Swipe across the bar to strum a chord. Drag down for a downstroke, up for an upstroke.</p>
-    <p><strong>Chord shortcuts:</strong> Tap a chord name (<kbd>G</kbd>, <kbd>C</kbd>, <kbd>D</kbd>…) to auto-fret a chord shape, then strum freely. Tap <kbd>—</kbd> to release.</p>
+    <p><strong>Hold the tablet like a guitar.</strong> Fretboard is on the right, strum bar on the left — the same hand positions you'd use on a real instrument.</p>
+    <p><strong>Fretting hand:</strong> Press anywhere on a string to fret that note. Pressing on a higher fret raises the pitch. Multi-touch — hold several frets at once.</p>
+    <p><strong>Strumming hand:</strong> Tap a string on the strum bar to pluck just that one. Swipe across to strum a chord — drag direction controls down vs. up stroke, speed controls velocity.</p>
+    <p><strong>Chord shortcuts:</strong> Tap <kbd>G</kbd>, <kbd>C</kbd>, <kbd>D</kbd>… to auto-fret a chord, then strum freely. Tap <kbd>—</kbd> to release.</p>
+    <p><strong>Fullscreen:</strong> Tap the <kbd>⛶</kbd> icon to hide system UI and suppress edge-swipe gestures while you play.</p>
     <ul>
       <li>Sound is generated live with Karplus-Strong synthesis — no samples.</li>
       <li>Designed for landscape tablets; multi-touch is the whole point.</li>
-      <li>String tuning is standard E A D G B E.</li>
+      <li>Standard tuning: E A D G B e.</li>
     </ul>
     <button class="close" id="closeHelp">Got it</button>
   </div>
@@ -1114,6 +1186,83 @@
   closeHelp.addEventListener('click', () => helpOverlay.classList.remove('show'));
   helpOverlay.addEventListener('click', (e) => {
     if (e.target === helpOverlay) helpOverlay.classList.remove('show');
+  });
+
+  // ========== FULLSCREEN ==========
+  const fsBtn = document.getElementById('fsBtn');
+  const fsIconEnter = document.getElementById('fsIconEnter');
+  const fsIconExit  = document.getElementById('fsIconExit');
+
+  function fsElement() {
+    return document.fullscreenElement || document.webkitFullscreenElement || null;
+  }
+
+  function enterFullscreen() {
+    const el = document.documentElement;
+    const req = el.requestFullscreen || el.webkitRequestFullscreen;
+    if (!req) return Promise.reject(new Error('no fullscreen api'));
+    // navigationUI:'hide' asks the browser to hide system UI where possible
+    const p = req.call(el, { navigationUI: 'hide' });
+    return (p && typeof p.then === 'function') ? p : Promise.resolve();
+  }
+  function exitFullscreen() {
+    const ex = document.exitFullscreen || document.webkitExitFullscreen;
+    if (!ex) return;
+    ex.call(document);
+  }
+
+  function lockLandscape() {
+    // Best-effort. iOS Safari doesn't support this; it'll just reject.
+    if (screen.orientation && screen.orientation.lock) {
+      screen.orientation.lock('landscape').catch(() => {});
+    }
+  }
+
+  function syncFsUI() {
+    const on = !!fsElement();
+    document.body.classList.toggle('fs-active', on);
+    fsIconEnter.style.display = on ? 'none' : 'block';
+    fsIconExit.style.display  = on ? 'block' : 'none';
+    if (on) lockLandscape();
+  }
+
+  fsBtn.addEventListener('click', () => {
+    if (fsElement()) {
+      exitFullscreen();
+    } else {
+      enterFullscreen().then(lockLandscape).catch(() => {
+        // If the API failed (e.g. iPhone Safari), at least scroll into the
+        // viewport corner so the address bar collapses.
+        window.scrollTo(0, 1);
+      });
+    }
+  });
+
+  document.addEventListener('fullscreenchange', syncFsUI);
+  document.addEventListener('webkitfullscreenchange', syncFsUI);
+
+  // ========== CONTEXT-MENU / LONG-PRESS / SELECTION SUPPRESSION ==========
+  // Behave like a fullscreen video: no right-click menu, no iOS callout,
+  // no text selection, no drag-and-drop image previews.
+  ['contextmenu', 'selectstart', 'dragstart'].forEach(evt => {
+    window.addEventListener(evt, (e) => e.preventDefault());
+  });
+
+  // ========== EDGE-SWIPE ABSORPTION ==========
+  // When in fullscreen, swallow any touch that starts inside an edge-guard
+  // strip. iOS still owns the very-bottom home-indicator gesture (no web
+  // page can fully block it), but absorbing these makes the play area
+  // resilient to accidental dock/notification pulls.
+  document.querySelectorAll('.edge-guard').forEach(g => {
+    const swallow = (e) => {
+      if (document.body.classList.contains('fs-active')) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+    g.addEventListener('touchstart', swallow, { passive: false });
+    g.addEventListener('touchmove',  swallow, { passive: false });
+    g.addEventListener('touchend',   swallow, { passive: false });
   });
 
   // ========== RESIZE / LAYOUT ==========
