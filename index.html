@@ -337,7 +337,9 @@
   }
   .strum-strings {
     position: absolute;
-    top: 32px; bottom: 32px;
+    /* Match the fretboard's 10% / 80% / 10% inset so the strum strings
+       line up exactly with the fretboard strings. */
+    top: 10%; bottom: 10%;
     left: 0; right: 0;
   }
   .strum-string {
@@ -865,20 +867,26 @@
     fretboardEl.appendChild(grid);
 
     // Build a cell for each string × fret position (fret 1..NUM_FRETS).
-    // The cell spans vertically: half the gap to the string above and half to the string below.
+    // Each cell vertically covers the half-gap toward its neighboring
+    // string; outer strings extend all the way to the fretboard edge so
+    // the whole fretboard is touchable and the fretting target snaps to
+    // the nearest string regardless of exact finger placement.
     for (let s = 0; s < NUM_STRINGS; s++) {
       const yCenter = stringYs[s];
-      const yAbove = s > 0 ? stringYs[s - 1] : yCenter - stringSpan / (NUM_STRINGS - 1);
-      const yBelow = s < NUM_STRINGS - 1 ? stringYs[s + 1] : yCenter + stringSpan / (NUM_STRINGS - 1);
-      const cellTop = (yCenter + yAbove) / 2;
-      const cellBot = (yCenter + yBelow) / 2;
+      const cellTop = (s === 0)               ? 0 : (yCenter + stringYs[s - 1]) / 2;
+      const cellBot = (s === NUM_STRINGS - 1) ? H : (yCenter + stringYs[s + 1]) / 2;
       const cellH = cellBot - cellTop;
 
+      // Pre-compute X bounds for each fret so the lowest fret reaches the
+      // nut and the highest reaches the left edge — no horizontal dead zones.
+      const nutEdge = W - 14;  // left edge of the nut element
       for (let f = 1; f <= NUM_FRETS; f++) {
         // fretXs decreases as fret index grows (nut on right), so the cell
         // for fret f spans from fretXs[f] (left) to fretXs[f-1] (right).
-        const xLeft  = Math.min(fretXsPx[f], fretXsPx[f - 1]);
-        const xRight = Math.max(fretXsPx[f], fretXsPx[f - 1]);
+        let xLeft  = Math.min(fretXsPx[f], fretXsPx[f - 1]);
+        let xRight = Math.max(fretXsPx[f], fretXsPx[f - 1]);
+        if (f === 1) xRight = nutEdge;           // fret-1 cell stretches up to the nut
+        if (f === NUM_FRETS) xLeft = 0;          // top-fret cell stretches to the left edge
         const cell = document.createElement('div');
         cell.className = 'fret-cell';
         cell.style.position = 'absolute';
@@ -1050,12 +1058,18 @@
   const lastPluckTime = new Array(NUM_STRINGS).fill(0);
 
   function stringIndexAtY(localY) {
-    const rect = strumStringsEl.getBoundingClientRect();
+    // Hit-test against the WHOLE strum container, not just the inner
+    // strings rect. Touches above the top string or below the bottom
+    // string snap to the nearest string instead of being ignored.
+    const rect = strumEl.getBoundingClientRect();
     const relY = localY - rect.top;
     if (relY < 0 || relY > rect.height) return -1;
-    // The strings are evenly spaced; find the closest
-    const idx = Math.round((relY / rect.height) * (NUM_STRINGS - 1));
-    if (idx < 0 || idx >= NUM_STRINGS) return -1;
+    // Strings are laid out at 10%..90% of the container, evenly spaced.
+    const stringsTop = rect.height * 0.10;
+    const stringsSpan = rect.height * 0.80;
+    let idx = Math.round(((relY - stringsTop) / stringsSpan) * (NUM_STRINGS - 1));
+    if (idx < 0) idx = 0;
+    if (idx >= NUM_STRINGS) idx = NUM_STRINGS - 1;
     return idx;
   }
 
