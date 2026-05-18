@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<title>Fret &amp; Strum — Tablet Guitar</title>
+<style>
+  :root {
+    --bg-0: #0a0907;
+    --bg-1: #14110d;
+    --wood-light: #c9974d;
+    --wood-mid: #8b5a2b;
+    --wood-dark: #4a2f15;
+    --rosewood-1: #3a2418;
+    --rosewood-2: #2a180f;
+    --fret-metal: #c8c8d0;
+    --fret-shadow: #4a4a52;
+    --string-1: #d4d4d4;
+    --string-2: #b8a878;
+    --accent: #ffb347;
+    --accent-hot: #ff7b3a;
+    --text: #f0e6d2;
+    --text-dim: #8a7e68;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--bg-0);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    overflow: hidden;
+    overscroll-behavior: none;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  #app {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background:
+      radial-gradient(ellipse at top, #1a1612 0%, var(--bg-0) 70%);
+  }
+
+  /* ===== HEADER ===== */
+  header {
+    height: 48px;
+    flex: 0 0 48px;
+    display: flex;
+    align-items: center;
+    padding: 0 18px;
+    gap: 16px;
+    background: linear-gradient(to bottom, #1a1612, #0f0c08);
+    border-bottom: 1px solid #2a2218;
+    z-index: 10;
+  }
+  .brand {
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    font-size: 16px;
+    color: var(--accent);
+    text-shadow: 0 0 12px rgba(255,179,71,0.25);
+  }
+  .brand small { color: var(--text-dim); font-weight: 400; margin-left: 8px; }
+  .header-spacer { flex: 1; }
+  .controls { display: flex; gap: 8px; align-items: center; }
+  .btn {
+    background: linear-gradient(to bottom, #2a2218, #1a1410);
+    color: var(--text);
+    border: 1px solid #3a2e1f;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    min-height: 36px;
+  }
+  .btn:active { transform: scale(0.96); background: #1a1410; }
+  .btn.active {
+    background: linear-gradient(to bottom, var(--accent), #d68a2f);
+    border-color: var(--accent);
+    color: #1a1208;
+  }
+  .chord-bar {
+    display: flex; gap: 6px;
+    padding: 4px;
+    background: #100c08;
+    border-radius: 10px;
+    border: 1px solid #2a2218;
+  }
+  .chord-btn {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid transparent;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    min-width: 38px;
+    cursor: pointer;
+  }
+  .chord-btn:active, .chord-btn.held {
+    background: var(--accent);
+    color: #1a1208;
+    border-color: var(--accent-hot);
+  }
+
+  /* ===== MAIN STAGE ===== */
+  .stage {
+    flex: 1;
+    display: flex;
+    padding: 14px;
+    gap: 12px;
+    min-height: 0;
+  }
+
+  /* ===== FRETBOARD ===== */
+  .fretboard-wrap {
+    flex: 1 1 auto;
+    position: relative;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow:
+      0 12px 30px rgba(0,0,0,0.5),
+      inset 0 0 0 1px #2c1a0d,
+      inset 0 0 40px rgba(0,0,0,0.4);
+    background:
+      linear-gradient(to right, #1a0f08, #2a1a0e 4%, #2a1a0e 96%, #1a0f08);
+  }
+  .fretboard {
+    position: absolute;
+    inset: 0;
+  }
+  .fb-bg {
+    position: absolute;
+    inset: 0;
+    background:
+      /* wood grain */
+      repeating-linear-gradient(
+        90deg,
+        rgba(0,0,0,0.06) 0px,
+        rgba(0,0,0,0.06) 1px,
+        transparent 1px,
+        transparent 6px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        rgba(255,200,140,0.04) 0px,
+        rgba(255,200,140,0.04) 2px,
+        transparent 2px,
+        transparent 14px
+      ),
+      linear-gradient(to bottom,
+        var(--rosewood-1) 0%,
+        var(--rosewood-2) 50%,
+        var(--rosewood-1) 100%);
+  }
+  /* nut */
+  .nut {
+    position: absolute;
+    top: 0; bottom: 0;
+    left: 0;
+    width: 14px;
+    background: linear-gradient(to right,
+      #f4f0e6 0%, #d8d2c0 60%, #888070 100%);
+    box-shadow: 2px 0 4px rgba(0,0,0,0.5);
+    z-index: 3;
+  }
+  /* frets are absolutely positioned vertical lines */
+  .fret-wire {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 4px;
+    background: linear-gradient(to right,
+      #6a6a72 0%, var(--fret-metal) 30%, #ffffff 50%, var(--fret-metal) 70%, #6a6a72 100%);
+    box-shadow: 0 0 4px rgba(0,0,0,0.6);
+    z-index: 3;
+    pointer-events: none;
+    transform: translateX(-50%);
+  }
+  /* fret position dots */
+  .inlay {
+    position: absolute;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #fffbe8, #c7b98f 60%, #6e6440);
+    box-shadow: inset 0 -2px 4px rgba(0,0,0,0.4);
+    transform: translate(-50%, -50%);
+    z-index: 2;
+    pointer-events: none;
+  }
+  /* fret number labels */
+  .fret-label {
+    position: absolute;
+    top: 4px;
+    transform: translateX(-50%);
+    font-size: 10px;
+    color: rgba(255,235,200,0.4);
+    font-weight: 600;
+    z-index: 4;
+    pointer-events: none;
+  }
+  /* strings overlay (drawn as horizontal divs over the fretboard) */
+  .string {
+    position: absolute;
+    left: 0; right: 0;
+    pointer-events: none;
+    z-index: 4;
+    transform-origin: center;
+    will-change: transform, filter;
+  }
+  .string-line {
+    width: 100%; height: 100%;
+    background: linear-gradient(to bottom,
+      rgba(0,0,0,0) 30%,
+      var(--string-color, #d4d4d4) 50%,
+      rgba(0,0,0,0) 70%);
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6));
+  }
+  .string.vibrating .string-line {
+    animation: stringVibe 0.4s ease-out;
+  }
+  @keyframes stringVibe {
+    0%   { transform: translateY(0); filter: blur(0); }
+    10%  { transform: translateY(-2.5px); filter: blur(1.2px); }
+    25%  { transform: translateY(2px); filter: blur(1px); }
+    50%  { transform: translateY(-1px); filter: blur(0.5px); }
+    100% { transform: translateY(0); filter: blur(0); }
+  }
+  /* string-hit zones for fretting (one cell per string × fret) */
+  .frets-grid {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    display: grid;
+  }
+  .fret-cell {
+    position: relative;
+  }
+  .fret-cell.pressed::after {
+    content: "";
+    position: absolute;
+    left: 50%; top: 50%;
+    width: 32px; height: 32px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,179,71,0.95) 0%, rgba(255,123,58,0.7) 60%, rgba(255,123,58,0) 100%);
+    box-shadow: 0 0 16px rgba(255,179,71,0.8);
+    pointer-events: none;
+    animation: pressPulse 0.3s ease-out;
+  }
+  @keyframes pressPulse {
+    from { transform: translate(-50%, -50%) scale(0.6); opacity: 0; }
+    to   { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  }
+  /* string name labels at the nut */
+  .string-label {
+    position: absolute;
+    left: -2px;
+    transform: translateY(-50%);
+    width: 18px;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: #1a1208;
+    z-index: 6;
+    pointer-events: none;
+    text-shadow: none;
+  }
+
+  /* ===== STRUM AREA ===== */
+  .strum {
+    flex: 0 0 200px;
+    position: relative;
+    border-radius: 14px;
+    overflow: hidden;
+    background:
+      linear-gradient(135deg, #2a1a10 0%, #1a0f08 100%);
+    box-shadow:
+      0 12px 30px rgba(0,0,0,0.5),
+      inset 0 0 0 1px #2c1a0d,
+      inset 0 0 60px rgba(0,0,0,0.5);
+  }
+  .strum-label {
+    position: absolute;
+    top: 10px; left: 0; right: 0;
+    text-align: center;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    pointer-events: none;
+    z-index: 2;
+  }
+  .strum-hint {
+    position: absolute;
+    bottom: 10px; left: 0; right: 0;
+    text-align: center;
+    font-size: 10px;
+    color: var(--text-dim);
+    pointer-events: none;
+    z-index: 2;
+    opacity: 0.6;
+  }
+  .strum-strings {
+    position: absolute;
+    top: 32px; bottom: 32px;
+    left: 0; right: 0;
+  }
+  .strum-string {
+    position: absolute;
+    left: 8%; right: 8%;
+    height: 1px;
+    background: linear-gradient(to right,
+      rgba(0,0,0,0) 0%,
+      var(--string-color, #d4d4d4) 15%,
+      var(--string-color, #d4d4d4) 85%,
+      rgba(0,0,0,0) 100%);
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6));
+    pointer-events: none;
+  }
+  .strum-string.vibing {
+    animation: strumVibe 0.4s ease-out;
+  }
+  @keyframes strumVibe {
+    0%   { transform: translateY(0); filter: blur(0); }
+    20%  { transform: translateY(-2px); filter: blur(1.5px); }
+    50%  { transform: translateY(1.5px); filter: blur(1px); }
+    100% { transform: translateY(0); filter: blur(0); }
+  }
+  /* note display ripple */
+  .ripple {
+    position: absolute;
+    width: 60px; height: 60px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,179,71,0.6) 0%, rgba(255,123,58,0) 70%);
+    transform: translate(-50%, -50%) scale(0);
+    pointer-events: none;
+    z-index: 3;
+    animation: rippleOut 0.5s ease-out forwards;
+  }
+  @keyframes rippleOut {
+    to { transform: translate(-50%, -50%) scale(1.8); opacity: 0; }
+  }
+
+  /* ===== HELP OVERLAY ===== */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 20px;
+  }
+  .overlay.show { display: flex; }
+  .panel {
+    background: linear-gradient(to bottom, #1a1612, #100c08);
+    border: 1px solid #3a2e1f;
+    border-radius: 14px;
+    padding: 28px 32px;
+    max-width: 560px;
+    color: var(--text);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+  }
+  .panel h2 {
+    color: var(--accent);
+    margin-bottom: 12px;
+    font-size: 22px;
+  }
+  .panel p, .panel li { margin-bottom: 8px; line-height: 1.5; font-size: 14px; }
+  .panel ul { padding-left: 22px; }
+  .panel .close {
+    margin-top: 16px;
+    width: 100%;
+    padding: 12px;
+    background: var(--accent);
+    color: #1a1208;
+    border: none;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+  }
+  kbd {
+    background: #2a2218;
+    border: 1px solid #3a2e1f;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 12px;
+    color: var(--accent);
+    font-family: inherit;
+  }
+
+  /* ===== PORTRAIT WARNING ===== */
+  .rotate-warning {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: var(--bg-0);
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    text-align: center;
+    padding: 40px;
+  }
+  .rotate-warning .icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+    animation: rotateHint 2s ease-in-out infinite;
+  }
+  @keyframes rotateHint {
+    0%, 100% { transform: rotate(0deg); }
+    50% { transform: rotate(90deg); }
+  }
+  @media (orientation: portrait) and (max-width: 900px) {
+    .rotate-warning { display: flex; flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <header>
+    <div class="brand">Fret &amp; Strum <small>tablet guitar · 8 frets</small></div>
+    <div class="header-spacer"></div>
+    <div class="chord-bar" id="chordBar">
+      <button class="chord-btn" data-chord="open">—</button>
+      <button class="chord-btn" data-chord="G">G</button>
+      <button class="chord-btn" data-chord="C">C</button>
+      <button class="chord-btn" data-chord="D">D</button>
+      <button class="chord-btn" data-chord="Em">Em</button>
+      <button class="chord-btn" data-chord="Am">Am</button>
+      <button class="chord-btn" data-chord="E">E</button>
+    </div>
+    <div class="controls">
+      <button class="btn" id="clearBtn">Clear</button>
+      <button class="btn" id="helpBtn">?</button>
+    </div>
+  </header>
+
+  <div class="stage">
+    <div class="fretboard-wrap">
+      <div class="fretboard" id="fretboard">
+        <div class="fb-bg"></div>
+        <div class="nut"></div>
+        <!-- fret wires, inlays, labels, strings, grid filled in by JS -->
+      </div>
+    </div>
+
+    <div class="strum" id="strum">
+      <div class="strum-label">STRUM</div>
+      <div class="strum-strings" id="strumStrings"></div>
+      <div class="strum-hint">tap or swipe</div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="helpOverlay">
+  <div class="panel">
+    <h2>How to play</h2>
+    <p><strong>Left hand (fretboard):</strong> Press anywhere on a string to fret that note. Pressing closer to the body raises the pitch. Multi-touch — you can hold several frets at once.</p>
+    <p><strong>Right hand (strum bar):</strong> Tap a string to pluck just that one. Swipe across the bar to strum a chord. Drag down for a downstroke, up for an upstroke.</p>
+    <p><strong>Chord shortcuts:</strong> Tap a chord name (<kbd>G</kbd>, <kbd>C</kbd>, <kbd>D</kbd>…) to auto-fret a chord shape, then strum freely. Tap <kbd>—</kbd> to release.</p>
+    <ul>
+      <li>Sound is generated live with Karplus-Strong synthesis — no samples.</li>
+      <li>Designed for landscape tablets; multi-touch is the whole point.</li>
+      <li>String tuning is standard E A D G B E.</li>
+    </ul>
+    <button class="close" id="closeHelp">Got it</button>
+  </div>
+</div>
+
+<div class="rotate-warning">
+  <div class="icon">⟳</div>
+  <h2>Please rotate to landscape</h2>
+  <p style="margin-top: 8px; color: var(--text-dim);">This guitar is designed for landscape orientation.</p>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  // ========== CONSTANTS ==========
+  const NUM_FRETS = 8;
+  const NUM_STRINGS = 6;
+  // strings index 0 = top of fretboard = low E (thickest)
+  // index 5 = bottom = high E (thinnest)
+  const STRING_NAMES  = ['E', 'A', 'D', 'G', 'B', 'e'];
+  const STRING_FREQS  = [82.41, 110.00, 146.83, 196.00, 246.94, 329.63];
+  const STRING_GAUGE  = [3.6, 3.1, 2.6, 2.1, 1.7, 1.3]; // visual thickness px
+  const STRING_COLORS = ['#a89368', '#b8a070', '#c4ac78', '#d8d8d8', '#e0e0e0', '#ececec'];
+  const INLAY_FRETS = [3, 5, 7]; // 8-fret board, so single dots on 3,5,7
+  const SEMITONE = Math.pow(2, 1/12);
+
+  const CHORDS = {
+    // fret per string, -1 = mute, 0 = open. Order: low E, A, D, G, B, high E
+    'open': [0, 0, 0, 0, 0, 0],
+    'G':    [3, 2, 0, 0, 0, 3],
+    'C':    [-1, 3, 2, 0, 1, 0],
+    'D':    [-1, -1, 0, 2, 3, 2],
+    'Em':   [0, 2, 2, 0, 0, 0],
+    'Am':   [-1, 0, 2, 2, 1, 0],
+    'E':    [0, 2, 2, 1, 0, 0],
+  };
+
+  // ========== DOM ==========
+  const fretboardEl = document.getElementById('fretboard');
+  const strumEl     = document.getElementById('strum');
+  const strumStringsEl = document.getElementById('strumStrings');
+  const chordBar    = document.getElementById('chordBar');
+  const helpBtn     = document.getElementById('helpBtn');
+  const clearBtn    = document.getElementById('clearBtn');
+  const helpOverlay = document.getElementById('helpOverlay');
+  const closeHelp   = document.getElementById('closeHelp');
+
+  // ========== AUDIO ENGINE ==========
+  // Karplus-Strong: noise-burst → delay line with feedback through 2-tap lowpass.
+  // We pre-generate AudioBuffers for each (string, fret) pair on first interaction.
+  let audioCtx = null;
+  let masterGain = null;
+  let masterCompressor = null;
+  const bufferCache = new Map(); // key = "string-fret" → AudioBuffer
+
+  function ensureAudio() {
+    if (audioCtx) return;
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    audioCtx = new Ctx({ latencyHint: 'interactive' });
+    masterCompressor = audioCtx.createDynamicsCompressor();
+    masterCompressor.threshold.value = -14;
+    masterCompressor.knee.value = 18;
+    masterCompressor.ratio.value = 3;
+    masterCompressor.attack.value = 0.003;
+    masterCompressor.release.value = 0.18;
+
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = 0.85;
+    masterCompressor.connect(masterGain).connect(audioCtx.destination);
+  }
+
+  function freqFor(stringIdx, fret) {
+    return STRING_FREQS[stringIdx] * Math.pow(SEMITONE, fret);
+  }
+
+  function generateKarplusBuffer(freq, duration, stringIdx) {
+    const sr = audioCtx.sampleRate;
+    const length = Math.floor(sr * duration);
+    const buf = audioCtx.createBuffer(1, length, sr);
+    const data = buf.getChannelData(0);
+
+    // delay-line length
+    const period = Math.max(2, Math.floor(sr / freq));
+    // initial excitation: short noise burst, slightly smoothed
+    const delay = new Float32Array(period);
+    for (let i = 0; i < period; i++) {
+      delay[i] = (Math.random() * 2 - 1);
+    }
+    // smooth the noise lightly (one pass of 2-point average) — gives warmer pluck
+    for (let i = 0; i < period; i++) {
+      const next = delay[(i + 1) % period];
+      delay[i] = 0.5 * delay[i] + 0.5 * next;
+    }
+
+    // Per-string decay: thicker strings ring longer
+    // index 0 = low E (thick) → less damping; index 5 = high e → more damping
+    const baseDecay = 0.9965 + (stringIdx === 0 ? 0.0020 :
+                                stringIdx === 1 ? 0.0015 :
+                                stringIdx === 2 ? 0.0010 :
+                                stringIdx === 3 ? 0.0005 :
+                                stringIdx === 4 ? 0.0002 : 0.0);
+    // Brightness: how much each new sample blends with the next sample
+    // Higher freq → tilt blend toward damping (loses highs faster)
+    const blend = 0.5;
+
+    let p = 0;
+    for (let i = 0; i < length; i++) {
+      const cur = delay[p];
+      const nxt = delay[(p + 1) % period];
+      const newSample = (cur * blend + nxt * (1 - blend)) * baseDecay;
+      data[i] = cur;
+      delay[p] = newSample;
+      p = (p + 1) % period;
+    }
+
+    // fade out the last 80ms to prevent clicks
+    const fadeLen = Math.min(Math.floor(sr * 0.08), length);
+    for (let i = 0; i < fadeLen; i++) {
+      const idx = length - fadeLen + i;
+      data[idx] *= 1 - (i / fadeLen);
+    }
+
+    // gentle attack ramp to remove the very first click
+    const atkLen = Math.min(64, length);
+    for (let i = 0; i < atkLen; i++) data[i] *= i / atkLen;
+
+    return buf;
+  }
+
+  function getBuffer(stringIdx, fret) {
+    const key = stringIdx + '-' + fret;
+    let buf = bufferCache.get(key);
+    if (!buf) {
+      const freq = freqFor(stringIdx, fret);
+      // duration scales with pitch: low strings ring longer
+      const dur = Math.min(4.5, 1.6 + (6 - stringIdx) * 0.0 + (200 / freq));
+      buf = generateKarplusBuffer(freq, dur, stringIdx);
+      bufferCache.set(key, buf);
+    }
+    return buf;
+  }
+
+  // Track active source per string so re-plucking dampens the previous note
+  const activeSources = new Array(NUM_STRINGS).fill(null);
+
+  function pluck(stringIdx, fret, velocity = 1) {
+    ensureAudio();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    if (fret < 0) return; // muted string
+
+    // damp any currently-ringing note on this string
+    const prev = activeSources[stringIdx];
+    if (prev) {
+      try {
+        const t = audioCtx.currentTime;
+        prev.gain.gain.cancelScheduledValues(t);
+        prev.gain.gain.setValueAtTime(prev.gain.gain.value, t);
+        prev.gain.gain.linearRampToValueAtTime(0, t + 0.035);
+        prev.source.stop(t + 0.05);
+      } catch (_) {}
+    }
+
+    const buffer = getBuffer(stringIdx, fret);
+    const src = audioCtx.createBufferSource();
+    src.buffer = buffer;
+
+    // Tone shaping per string
+    const lowpass = audioCtx.createBiquadFilter();
+    lowpass.type = 'lowpass';
+    // brighter for high strings, mellower for low
+    lowpass.frequency.value = 1800 + stringIdx * 600;
+    lowpass.Q.value = 0.4;
+
+    const highpass = audioCtx.createBiquadFilter();
+    highpass.type = 'highpass';
+    highpass.frequency.value = 70;
+
+    const gain = audioCtx.createGain();
+    // low strings perceptually quieter, boost a touch; high strings can be piercing, attenuate
+    const stringTrim = [1.05, 1.0, 0.95, 0.9, 0.85, 0.8][stringIdx];
+    gain.gain.value = 0.55 * velocity * stringTrim;
+
+    src.connect(highpass).connect(lowpass).connect(gain).connect(masterCompressor);
+    src.start();
+    activeSources[stringIdx] = { source: src, gain: gain };
+    src.onended = () => {
+      if (activeSources[stringIdx] && activeSources[stringIdx].source === src) {
+        activeSources[stringIdx] = null;
+      }
+    };
+  }
+
+  // ========== STATE ==========
+  // fretState[s] = highest fret currently pressed on string s, or 0 if open, or -1 if muted by chord
+  const fretState = new Array(NUM_STRINGS).fill(0);
+  // each string can have multiple touches pressing it; we track the max fret
+  const stringTouches = Array.from({ length: NUM_STRINGS }, () => new Map()); // touchId -> fret
+  // currently held chord (if any)
+  let heldChord = null;
+
+  function recomputeFret(stringIdx) {
+    if (heldChord) return; // chord overrides individual touches
+    const touches = stringTouches[stringIdx];
+    let maxFret = 0;
+    for (const f of touches.values()) {
+      if (f > maxFret) maxFret = f;
+    }
+    fretState[stringIdx] = maxFret;
+    updateFretVisuals(stringIdx);
+  }
+
+  // ========== FRETBOARD BUILD ==========
+  // We'll lay out the fretboard with logarithmically-narrowing fret spacing,
+  // which is how real guitar frets are spaced.
+  let fretXs = []; // x positions (% of width) for each fret line (0..NUM_FRETS), 0 = nut
+  let stringYs = []; // y positions (% of height) for each string center
+
+  function computeFretLayout(width) {
+    // Use the standard 17.817 rule: each fret is at (previous + remaining/17.817)
+    const scaleLength = width * 1.7; // virtual scale beyond the visible 8th fret
+    const xs = [0];
+    let position = 0;
+    let remaining = scaleLength;
+    for (let i = 1; i <= NUM_FRETS; i++) {
+      const step = remaining / 17.817;
+      position += step;
+      remaining -= step;
+      xs.push(position);
+    }
+    // normalize so the last fret sits near the right edge
+    // We want: fret 0 (nut) at left edge of usable area, fret 8 at right edge.
+    // Add some margin so the 8th fret isn't right at the edge.
+    const usableStart = 18; // px from left (after nut)
+    const usableEnd = width - 8;
+    const span = xs[NUM_FRETS] - xs[0];
+    return xs.map(x => usableStart + (x / span) * (usableEnd - usableStart));
+  }
+
+  function buildFretboard() {
+    const rect = fretboardEl.getBoundingClientRect();
+    const W = rect.width;
+    const H = rect.height;
+
+    // Remove dynamically-built elements (keep .fb-bg and .nut)
+    fretboardEl.querySelectorAll('.fret-wire, .inlay, .fret-label, .string, .frets-grid, .string-label')
+      .forEach(el => el.remove());
+
+    // fret X positions in px
+    const fretXsPx = computeFretLayout(W);
+    fretXs = fretXsPx;
+
+    // string Y positions — distributed with a small inset top/bottom
+    const stringInsetTop = H * 0.10;
+    const stringInsetBot = H * 0.10;
+    const stringSpan = H - stringInsetTop - stringInsetBot;
+    stringYs = [];
+    for (let i = 0; i < NUM_STRINGS; i++) {
+      stringYs.push(stringInsetTop + (stringSpan * i) / (NUM_STRINGS - 1));
+    }
+
+    // Build fret wires (skip 0; nut already covers it)
+    for (let f = 1; f <= NUM_FRETS; f++) {
+      const wire = document.createElement('div');
+      wire.className = 'fret-wire';
+      wire.style.left = fretXsPx[f] + 'px';
+      fretboardEl.appendChild(wire);
+
+      const lbl = document.createElement('div');
+      lbl.className = 'fret-label';
+      // midpoint between this and previous fret
+      const mid = (fretXsPx[f] + fretXsPx[f - 1]) / 2;
+      lbl.style.left = mid + 'px';
+      lbl.textContent = f;
+      fretboardEl.appendChild(lbl);
+    }
+
+    // Inlay dots on selected frets
+    INLAY_FRETS.forEach(f => {
+      if (f > NUM_FRETS) return;
+      const mid = (fretXsPx[f] + fretXsPx[f - 1]) / 2;
+      const dot = document.createElement('div');
+      dot.className = 'inlay';
+      dot.style.left = mid + 'px';
+      dot.style.top = (H / 2) + 'px';
+      fretboardEl.appendChild(dot);
+    });
+
+    // Strings
+    for (let s = 0; s < NUM_STRINGS; s++) {
+      const str = document.createElement('div');
+      str.className = 'string';
+      str.dataset.string = s;
+      str.style.top = (stringYs[s] - STRING_GAUGE[s] / 2) + 'px';
+      str.style.height = STRING_GAUGE[s] + 'px';
+      str.style.setProperty('--string-color', STRING_COLORS[s]);
+      const line = document.createElement('div');
+      line.className = 'string-line';
+      str.appendChild(line);
+      fretboardEl.appendChild(str);
+
+      // String name label (on the nut)
+      const lbl = document.createElement('div');
+      lbl.className = 'string-label';
+      lbl.style.top = stringYs[s] + 'px';
+      lbl.textContent = STRING_NAMES[s];
+      fretboardEl.appendChild(lbl);
+    }
+
+    // Frets grid: a touchable cell per (string × fret).
+    // We build cells absolutely positioned to match the actual fret X positions.
+    const grid = document.createElement('div');
+    grid.className = 'frets-grid';
+    grid.id = 'fretsGrid';
+    fretboardEl.appendChild(grid);
+
+    // Build a cell for each string × fret position (fret 1..NUM_FRETS).
+    // The cell spans vertically: half the gap to the string above and half to the string below.
+    for (let s = 0; s < NUM_STRINGS; s++) {
+      const yCenter = stringYs[s];
+      const yAbove = s > 0 ? stringYs[s - 1] : yCenter - stringSpan / (NUM_STRINGS - 1);
+      const yBelow = s < NUM_STRINGS - 1 ? stringYs[s + 1] : yCenter + stringSpan / (NUM_STRINGS - 1);
+      const cellTop = (yCenter + yAbove) / 2;
+      const cellBot = (yCenter + yBelow) / 2;
+      const cellH = cellBot - cellTop;
+
+      for (let f = 1; f <= NUM_FRETS; f++) {
+        const x1 = fretXsPx[f - 1];
+        const x2 = fretXsPx[f];
+        const cell = document.createElement('div');
+        cell.className = 'fret-cell';
+        cell.style.position = 'absolute';
+        cell.style.left = x1 + 'px';
+        cell.style.top = cellTop + 'px';
+        cell.style.width = (x2 - x1) + 'px';
+        cell.style.height = cellH + 'px';
+        cell.dataset.string = s;
+        cell.dataset.fret = f;
+        grid.appendChild(cell);
+      }
+    }
+  }
+
+  function updateFretVisuals(stringIdx) {
+    const grid = document.getElementById('fretsGrid');
+    if (!grid) return;
+    const cells = grid.querySelectorAll('.fret-cell[data-string="' + stringIdx + '"]');
+    const activeFret = fretState[stringIdx];
+    cells.forEach(c => {
+      const f = +c.dataset.fret;
+      c.classList.toggle('pressed', activeFret > 0 && f === activeFret);
+    });
+  }
+
+  function refreshAllFretVisuals() {
+    for (let s = 0; s < NUM_STRINGS; s++) updateFretVisuals(s);
+  }
+
+  // ========== STRUM AREA BUILD ==========
+  function buildStrumArea() {
+    strumStringsEl.innerHTML = '';
+    const rect = strumStringsEl.getBoundingClientRect();
+    const H = rect.height;
+    for (let s = 0; s < NUM_STRINGS; s++) {
+      const y = (H * s) / (NUM_STRINGS - 1);
+      const str = document.createElement('div');
+      str.className = 'strum-string';
+      str.dataset.string = s;
+      str.style.top = y + 'px';
+      str.style.height = Math.max(1, STRING_GAUGE[s]) + 'px';
+      str.style.setProperty('--string-color', STRING_COLORS[s]);
+      strumStringsEl.appendChild(str);
+    }
+  }
+
+  function vibrateStringVisual(stringIdx) {
+    // fretboard string
+    const fbStr = fretboardEl.querySelector('.string[data-string="' + stringIdx + '"]');
+    if (fbStr) {
+      fbStr.classList.remove('vibrating');
+      void fbStr.offsetWidth;
+      fbStr.classList.add('vibrating');
+    }
+    // strum string
+    const stStr = strumStringsEl.querySelector('.strum-string[data-string="' + stringIdx + '"]');
+    if (stStr) {
+      stStr.classList.remove('vibing');
+      void stStr.offsetWidth;
+      stStr.classList.add('vibing');
+    }
+  }
+
+  function showRipple(x, y) {
+    const rect = strumEl.getBoundingClientRect();
+    const r = document.createElement('div');
+    r.className = 'ripple';
+    r.style.left = (x - rect.left) + 'px';
+    r.style.top = (y - rect.top) + 'px';
+    strumEl.appendChild(r);
+    setTimeout(() => r.remove(), 500);
+  }
+
+  // ========== TOUCH HANDLING ==========
+  // FRETBOARD TOUCHES
+  function handleFretTouchStart(e) {
+    if (heldChord) return;
+    e.preventDefault();
+    const touches = e.changedTouches || [e];
+    for (const t of touches) {
+      const target = document.elementFromPoint(t.clientX, t.clientY);
+      const cell = target && target.closest && target.closest('.fret-cell');
+      if (!cell) continue;
+      const s = +cell.dataset.string;
+      const f = +cell.dataset.fret;
+      const id = t.identifier !== undefined ? t.identifier : 'm';
+      stringTouches[s].set(id, f);
+      recomputeFret(s);
+    }
+  }
+
+  function handleFretTouchMove(e) {
+    if (heldChord) return;
+    e.preventDefault();
+    const touches = e.changedTouches || [e];
+    for (const t of touches) {
+      const id = t.identifier !== undefined ? t.identifier : 'm';
+      // remove this touch from every string, then re-add to current
+      for (let s = 0; s < NUM_STRINGS; s++) {
+        if (stringTouches[s].delete(id)) recomputeFret(s);
+      }
+      const target = document.elementFromPoint(t.clientX, t.clientY);
+      const cell = target && target.closest && target.closest('.fret-cell');
+      if (cell) {
+        const s = +cell.dataset.string;
+        const f = +cell.dataset.fret;
+        stringTouches[s].set(id, f);
+        recomputeFret(s);
+      }
+    }
+  }
+
+  function handleFretTouchEnd(e) {
+    if (heldChord) return;
+    e.preventDefault();
+    const touches = e.changedTouches || [e];
+    for (const t of touches) {
+      const id = t.identifier !== undefined ? t.identifier : 'm';
+      for (let s = 0; s < NUM_STRINGS; s++) {
+        if (stringTouches[s].delete(id)) recomputeFret(s);
+      }
+    }
+  }
+
+  fretboardEl.addEventListener('touchstart', handleFretTouchStart, { passive: false });
+  fretboardEl.addEventListener('touchmove', handleFretTouchMove, { passive: false });
+  fretboardEl.addEventListener('touchend', handleFretTouchEnd, { passive: false });
+  fretboardEl.addEventListener('touchcancel', handleFretTouchEnd, { passive: false });
+
+  // Mouse fallback for desktop testing
+  let mouseFretDown = false;
+  fretboardEl.addEventListener('mousedown', (e) => {
+    if (heldChord) return;
+    mouseFretDown = true;
+    const cell = e.target.closest && e.target.closest('.fret-cell');
+    if (!cell) return;
+    const s = +cell.dataset.string;
+    const f = +cell.dataset.fret;
+    stringTouches[s].set('m', f);
+    recomputeFret(s);
+  });
+  fretboardEl.addEventListener('mousemove', (e) => {
+    if (!mouseFretDown || heldChord) return;
+    const target = document.elementFromPoint(e.clientX, e.clientY);
+    const cell = target && target.closest && target.closest('.fret-cell');
+    for (let s = 0; s < NUM_STRINGS; s++) {
+      if (stringTouches[s].delete('m')) recomputeFret(s);
+    }
+    if (cell) {
+      const s = +cell.dataset.string;
+      const f = +cell.dataset.fret;
+      stringTouches[s].set('m', f);
+      recomputeFret(s);
+    }
+  });
+  window.addEventListener('mouseup', () => {
+    if (!mouseFretDown) return;
+    mouseFretDown = false;
+    if (heldChord) return;
+    for (let s = 0; s < NUM_STRINGS; s++) {
+      if (stringTouches[s].delete('m')) recomputeFret(s);
+    }
+  });
+
+  // STRUM TOUCHES
+  // Maintain a per-touch state in the strum area: which string was last under this touch.
+  const strumTouchState = new Map(); // touchId -> { lastStringIdx, lastY }
+  const STRUM_THROTTLE_MS = 35; // min ms between re-plucks on the same string
+  const lastPluckTime = new Array(NUM_STRINGS).fill(0);
+
+  function stringIndexAtY(localY) {
+    const rect = strumStringsEl.getBoundingClientRect();
+    const relY = localY - rect.top;
+    if (relY < 0 || relY > rect.height) return -1;
+    // The strings are evenly spaced; find the closest
+    const idx = Math.round((relY / rect.height) * (NUM_STRINGS - 1));
+    if (idx < 0 || idx >= NUM_STRINGS) return -1;
+    return idx;
+  }
+
+  function attemptPluckAt(x, y, velocity = 1) {
+    const s = stringIndexAtY(y);
+    if (s < 0) return -1;
+    const now = performance.now();
+    if (now - lastPluckTime[s] < STRUM_THROTTLE_MS) return s;
+    lastPluckTime[s] = now;
+    const fret = fretState[s];
+    if (fret < 0) return s; // muted
+    pluck(s, fret, velocity);
+    vibrateStringVisual(s);
+    showRipple(x, y);
+    return s;
+  }
+
+  function handleStrumStart(e) {
+    e.preventDefault();
+    const touches = e.changedTouches || [{ identifier: 'm', clientX: e.clientX, clientY: e.clientY }];
+    for (const t of touches) {
+      const s = attemptPluckAt(t.clientX, t.clientY, 1.0);
+      strumTouchState.set(t.identifier !== undefined ? t.identifier : 'm', { lastStringIdx: s, lastY: t.clientY });
+    }
+  }
+
+  function handleStrumMove(e) {
+    e.preventDefault();
+    const touches = e.changedTouches || [{ identifier: 'm', clientX: e.clientX, clientY: e.clientY }];
+    for (const t of touches) {
+      const id = t.identifier !== undefined ? t.identifier : 'm';
+      const state = strumTouchState.get(id);
+      if (!state) continue;
+      const newS = stringIndexAtY(t.clientY);
+      if (newS < 0) continue;
+      // If we've moved to a new string (or crossed multiple), pluck each one we crossed
+      if (newS !== state.lastStringIdx && state.lastStringIdx >= 0) {
+        // Pluck every string between lastStringIdx and newS (exclusive of lastStringIdx)
+        const dir = newS > state.lastStringIdx ? 1 : -1;
+        for (let s = state.lastStringIdx + dir; dir > 0 ? s <= newS : s >= newS; s += dir) {
+          // Compute velocity from movement speed
+          const dy = Math.abs(t.clientY - state.lastY);
+          const velocity = Math.min(1.2, 0.6 + dy * 0.02);
+          const now = performance.now();
+          if (now - lastPluckTime[s] >= STRUM_THROTTLE_MS) {
+            lastPluckTime[s] = now;
+            const fret = fretState[s];
+            if (fret >= 0) {
+              pluck(s, fret, velocity);
+              vibrateStringVisual(s);
+            }
+          }
+        }
+        showRipple(t.clientX, t.clientY);
+      }
+      state.lastStringIdx = newS;
+      state.lastY = t.clientY;
+    }
+  }
+
+  function handleStrumEnd(e) {
+    e.preventDefault();
+    const touches = e.changedTouches || [{ identifier: 'm' }];
+    for (const t of touches) {
+      const id = t.identifier !== undefined ? t.identifier : 'm';
+      strumTouchState.delete(id);
+    }
+  }
+
+  strumEl.addEventListener('touchstart', handleStrumStart, { passive: false });
+  strumEl.addEventListener('touchmove', handleStrumMove, { passive: false });
+  strumEl.addEventListener('touchend', handleStrumEnd, { passive: false });
+  strumEl.addEventListener('touchcancel', handleStrumEnd, { passive: false });
+
+  // Mouse fallback
+  let mouseStrumDown = false;
+  strumEl.addEventListener('mousedown', (e) => {
+    mouseStrumDown = true;
+    handleStrumStart(e);
+  });
+  strumEl.addEventListener('mousemove', (e) => {
+    if (!mouseStrumDown) return;
+    handleStrumMove(e);
+  });
+  window.addEventListener('mouseup', (e) => {
+    if (!mouseStrumDown) return;
+    mouseStrumDown = false;
+    handleStrumEnd(e);
+  });
+
+  // ========== CHORD HANDLING ==========
+  function applyChord(chordName) {
+    const shape = CHORDS[chordName];
+    if (!shape) return;
+    heldChord = chordName;
+    for (let s = 0; s < NUM_STRINGS; s++) {
+      fretState[s] = shape[s];
+      updateFretVisuals(s);
+    }
+    // mark button visually
+    chordBar.querySelectorAll('.chord-btn').forEach(b => {
+      b.classList.toggle('held', b.dataset.chord === chordName);
+    });
+  }
+
+  function releaseChord() {
+    heldChord = null;
+    chordBar.querySelectorAll('.chord-btn').forEach(b => b.classList.remove('held'));
+    for (let s = 0; s < NUM_STRINGS; s++) {
+      stringTouches[s].clear();
+      fretState[s] = 0;
+      updateFretVisuals(s);
+    }
+  }
+
+  chordBar.addEventListener('click', (e) => {
+    const btn = e.target.closest('.chord-btn');
+    if (!btn) return;
+    const c = btn.dataset.chord;
+    if (c === 'open' || heldChord === c) {
+      releaseChord();
+    } else {
+      applyChord(c);
+    }
+  });
+
+  clearBtn.addEventListener('click', releaseChord);
+
+  // ========== HELP OVERLAY ==========
+  helpBtn.addEventListener('click', () => helpOverlay.classList.add('show'));
+  closeHelp.addEventListener('click', () => helpOverlay.classList.remove('show'));
+  helpOverlay.addEventListener('click', (e) => {
+    if (e.target === helpOverlay) helpOverlay.classList.remove('show');
+  });
+
+  // ========== RESIZE / LAYOUT ==========
+  let resizeTimer = null;
+  function relayout() {
+    buildFretboard();
+    buildStrumArea();
+    refreshAllFretVisuals();
+  }
+  function onResize() {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(relayout, 120);
+  }
+  window.addEventListener('resize', onResize);
+  window.addEventListener('orientationchange', () => setTimeout(relayout, 250));
+
+  // ========== INIT ==========
+  // Wait one frame so layout has settled.
+  requestAnimationFrame(() => {
+    relayout();
+    // Auto-show help on first visit
+    if (!localStorage.getItem('fs.helpSeen')) {
+      helpOverlay.classList.add('show');
+      localStorage.setItem('fs.helpSeen', '1');
+    }
+  });
+
+  // Prevent iOS rubber-band / pinch zoom
+  document.addEventListener('gesturestart', (e) => e.preventDefault());
+  document.addEventListener('touchmove', (e) => {
+    if (e.touches.length > 1) e.preventDefault();
+  }, { passive: false });
+
+  // Resume audio on first user interaction (autoplay policy)
+  const resumeAudio = () => {
+    ensureAudio();
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  };
+  document.addEventListener('touchstart', resumeAudio, { once: true });
+  document.addEventListener('mousedown', resumeAudio, { once: true });
+})();
+</script>
+
+</body>
+</html>
